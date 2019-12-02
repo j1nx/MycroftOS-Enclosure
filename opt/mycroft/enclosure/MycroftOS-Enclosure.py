@@ -17,22 +17,37 @@
 # limitations under the License.
 ##########################################################################
 
+import os, sys
 from mycroft.client.enclosure.generic import EnclosureGeneric
 
 class EnclosureMycroftOS(EnclosureGeneric):
 
-    def __init__(self):
-        super().__init__()
+	def __init__(self):
+		super().__init__()
 
-        # Messagebus listeners
-        self.bus.on("system.shutdown", self.handle_shutdown)
-        self.bus.on("system.reboot", self.handle_reboot)
+		# Messagebus listeners
+		self.bus.on("system.shutdown", self.handle_shutdown)
+		self.bus.on("system.reboot", self.handle_reboot)
+		self.bus.on("mycroft.volume.set", self.on_volume_set)
+		self.bus.on("mycroft.volume.get", self.on_volume_get)
+		self.bus.on("mycroft.volume.duck", self.on_volume_duck)
+		self.bus.on("mycroft.volume.unduck", self.on_volume_unduck)
 
-    def handle_shutdown(self, message):
-        os.system("shutdown --poweroff now")
+	def handle_shutdown(self, message):
+		os.system("shutdown --poweroff now")
 
-    def handle_reboot(self, message):
-        os.system("shutdown --reboot now")
+	def handle_reboot(self, message):
+		os.system("shutdown --reboot now")
 
-enc = EnclosureMycroftOS()
-enc.run()
+	def on_volume_set(self, message):
+
+	def on_volume_get(self, message):
+
+	def on_volume_duck(self, message):
+
+	def on_volume_unduck(self, message):
+
+
+if __name__ == '__main__':
+	enc = EnclosureMycroftOS()
+	enc.run()
