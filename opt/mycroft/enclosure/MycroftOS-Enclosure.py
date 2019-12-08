@@ -18,12 +18,17 @@
 ##########################################################################
 
 import os, sys
+from subprocess import call, check_output, CalledProcessError
 from mycroft.client.enclosure.generic import EnclosureGeneric
 
 class EnclosureMycroftOS(EnclosureGeneric):
 
 	def __init__(self):
 		super().__init__()
+
+		# Volume control
+		self.volume = 0.6
+		self.muted = False
 
 		# Messagebus listeners
 		self.bus.on("system.shutdown", self.handle_shutdown)
@@ -40,13 +45,32 @@ class EnclosureMycroftOS(EnclosureGeneric):
 		os.system("shutdown --reboot now")
 
 	def on_volume_set(self, message):
+		""" Set volume level by percentage"""
+		vol = message.data.get("percent", 0.5)
+		self.muted = False
+		call(['pactl', 'set-sink-volume', '0', 'vol'])
 
 	def on_volume_get(self, message):
+		""" Handle request for current volume. """
+		self.bus.emit(message.response(data={'percent': self.volume, 'muted': self.muted}))
 
 	def on_volume_duck(self, message):
+		""" Handle ducking event by muting. """
+		self.muted = True
+		self.mute_pulseaudio()
 
 	def on_volume_unduck(self, message):
+		""" Handle ducking event by unmuting. """
+                self.muted = True
+                self.unmute_pulseaudio()
 
+	def mute_pulseaudio(self):
+		"""Mutes pulseaudio volume"""
+		call(['pactl', 'set-sink-mute', '0', '1'])
+
+	def unmute_pulseaudio(self):
+		"""Resets pulseaudio volume to max"""
+		call(['pactl', 'set-sink-mute', '0', '0'])
 
 if __name__ == '__main__':
 	enc = EnclosureMycroftOS()
