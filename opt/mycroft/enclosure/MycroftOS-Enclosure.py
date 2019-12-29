@@ -17,18 +17,18 @@
 # limitations under the License.
 ##########################################################################
 
-import os, sys
-from subprocess import call, check_output, CalledProcessError
-from mycroft.client.enclosure.generic import EnclosureGeneric
+#from mycroft.client.enclosure.generic import EnclosureGeneric
+from jarbas_utils.system import system_reboot, system_shutdown, ssh_enable, ssh_disable
+from jarbas_utils.sound.pulse import PulseAudio
+from jarbas_utils.log import LOG
+from jarbas_utils.messagebus import get_mycroft_bus, Message
 
-class EnclosureMycroftOS(EnclosureGeneric):
+class EnclosureMycroftOS:
 
 	def __init__(self):
 		super().__init__()
-
-		# Volume control
-		self.volume = 0.6
-		self.muted = False
+		LOG.info('Setting up MycroftOS enclosure')
+		self.bus = get_mycroft_bus()
 
 		# Messagebus listeners
 		self.bus.on("system.shutdown", self.handle_shutdown)
@@ -38,40 +38,29 @@ class EnclosureMycroftOS(EnclosureGeneric):
 		self.bus.on("mycroft.volume.duck", self.on_volume_duck)
 		self.bus.on("mycroft.volume.unduck", self.on_volume_unduck)
 
+	def speak(self, utterance):
+		LOG.info('Sending speak message...')
+		self.bus.emit(Message('speak', data={'utterance': utterance}))
+
 	def handle_shutdown(self, message):
-		os.system("shutdown --poweroff now")
+		self.speak("Shutting down")
+		system_shutdown()
 
 	def handle_reboot(self, message):
-		os.system("shutdown --reboot now")
+		self.speak("rebooting")
+		system_reboot()
 
 	def on_volume_set(self, message):
-		""" Set volume level by percentage"""
-		vol = message.data.get("percent", 0.5)
-		self.muted = False
-		call(['pactl', 'set-sink-volume', '0', 'vol'])
+		volume = message.data.get("volume", 50)
+		assert 0 <= volume <= 100
+		self.pulse.set_volume(volume)
 
 	def on_volume_get(self, message):
-		""" Handle request for current volume. """
-		self.bus.emit(message.response(data={'percent': self.volume, 'muted': self.muted}))
+		volume = self.pulse.get_volume()
+		self.speak(volume)
 
 	def on_volume_duck(self, message):
-		""" Handle ducking event by muting. """
-		self.muted = True
-		self.mute_pulseaudio()
+		self.pulse.mute_all()
 
 	def on_volume_unduck(self, message):
-		""" Handle ducking event by unmuting. """
-                self.muted = True
-                self.unmute_pulseaudio()
-
-	def mute_pulseaudio(self):
-		"""Mutes pulseaudio volume"""
-		call(['pactl', 'set-sink-mute', '0', '1'])
-
-	def unmute_pulseaudio(self):
-		"""Resets pulseaudio volume to max"""
-		call(['pactl', 'set-sink-mute', '0', '0'])
-
-if __name__ == '__main__':
-	enc = EnclosureMycroftOS()
-	enc.run()
+		self.pulse.unmute_all()
