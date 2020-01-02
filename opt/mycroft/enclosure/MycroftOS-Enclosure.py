@@ -19,6 +19,7 @@
 
 #from mycroft.client.enclosure.generic import EnclosureGeneric
 from jarbas_utils.system import system_reboot, system_shutdown, ssh_enable, ssh_disable
+from jarbas_utils import wait_for_exit_signal
 from jarbas_utils.sound.pulse import PulseAudio
 from jarbas_utils.log import LOG
 from jarbas_utils.messagebus import get_mycroft_bus, Message
@@ -64,3 +65,7 @@ class EnclosureMycroftOS:
 
 	def on_volume_unduck(self, message):
 		self.pulse.unmute_all()
+
+if __name__ == "__main__":
+	EnclosureMycroftOS()
+	wait_for_exit_signal()
