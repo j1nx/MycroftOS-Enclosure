@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# enclosure.py
+# services.py
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,13 +15,17 @@
 # limitations under the License.
 ##########################################################################
 
-from lib.mycroftos_enclosure.py import MycroftOS_Enclosure
+import os
+import sys
+import subprocess
 
 
-class Generic_Enclosure(MycroftOS_Enclosure):
+def ssh_enable():
+	# Permanently allow SSH access
+	subprocess.call('sudo systemctl enable ssh.service', shell=True)
+	subprocess.call('sudo systemctl start ssh.service', shell=True)
 
-    def __init__(self):
-        super().__init__()
-
-enc = Generic_Enclosure()
-enc.run()
+def ssh_disable():
+	# Permanently block SSH access from the outside
+	subprocess.call('sudo systemctl stop ssh.service', shell=True)
+	subprocess.call('sudo systemctl disable ssh.service', shell=True)

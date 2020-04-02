@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# enclosure.py
+# system.py
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,13 +15,15 @@
 # limitations under the License.
 ##########################################################################
 
-from lib.mycroftos_enclosure.py import MycroftOS_Enclosure
+import os
+import sys
+import subprocess
 
 
-class Generic_Enclosure(MycroftOS_Enclosure):
+def system_shutdown():
+	# Turn the system completely off (with no option to inhibit it)
+	subprocess.call('sudo systemctl poweroff -i', shell=True)
 
-    def __init__(self):
-        super().__init__()
-
-enc = Generic_Enclosure()
-enc.run()
+def system_reboot():
+	# Shut down and restart the system
+	subprocess.call('sudo systemctl reboot -i', shell=True)

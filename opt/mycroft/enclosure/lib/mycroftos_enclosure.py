@@ -2,8 +2,6 @@
 ##########################################################################
 # MycroftOS-Enclosure.py
 #
-# Copyright 2019, j1nx.nl
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -17,27 +15,55 @@
 # limitations under the License.
 ##########################################################################
 
-#from mycroft.client.enclosure.generic import EnclosureGeneric
-from jarbas_utils.system import system_reboot, system_shutdown, ssh_enable, ssh_disable
-from jarbas_utils import wait_for_exit_signal
-from jarbas_utils.sound.pulse import PulseAudio
-from jarbas_utils.log import LOG
-from jarbas_utils.messagebus import get_mycroft_bus, Message
+import os
+import sys
 
-class EnclosureMycroftOS:
+from mycroft.client.enclosure.generic import EnclosureGeneric
+from mycroft.messagebus.message import Message
+from mycroft.util.log import LOG
+from mycroft.api import is_paired
+
+
+class MycroftOS_Enclosure(EnclosureGeneric):
 
 	def __init__(self):
 		super().__init__()
 		LOG.info('Setting up MycroftOS enclosure')
-		self.bus = get_mycroft_bus()
 
-		# Messagebus listeners
+		# OS administrative messages
 		self.bus.on("system.shutdown", self.handle_shutdown)
 		self.bus.on("system.reboot", self.handle_reboot)
+
+		# Handle volume settings via PulseAudio
 		self.bus.on("mycroft.volume.set", self.on_volume_set)
 		self.bus.on("mycroft.volume.get", self.on_volume_get)
 		self.bus.on("mycroft.volume.duck", self.on_volume_duck)
 		self.bus.on("mycroft.volume.unduck", self.on_volume_unduck)
+		
+		# Interaction feedback
+		self.bus.on("recognizer_loop:wakeword", self.indicate_listening)
+		self.bus.on("recognizer_loop:record_begin", self.indicate_listening)
+		self.bus.on("recognizer_loop:record_end", self.indicate_listening_done)
+
+		self.bus.on("recognizer_loop:sleep", self.indicate_sleeping)
+		self.bus.on("mycroft.awoken", self.indicate_waking)
+
+		self.bus.on("recognizer_loop:audio_output_start", self.indicate_talking)
+		self.bus.on("recognizer_loop:audio_output_end", self.indicate_talking_done)
+		self.bus.on("mycroft.skill.handler.start", self.indicate_thinking)
+		self.bus.on("mycroft.skill.handler.complete", self.indicate_thinking_done)
+
+		# Visual indication that system is booting
+		self.bus.on("mycroft.skills.initialized", self.indicate_booting_done)
+
+		# Handle Device Ready
+		self.bus.on('mycroft.ready', self.reset_screen)
+		
+		self.asleep = False
+		self.indicate_booting()
+
+	def indicate_booting(self):
+		# Placeholder, override to start something during the bootup sequence
 
 	def speak(self, utterance):
 		LOG.info('Sending speak message...')
@@ -65,7 +91,3 @@ class EnclosureMycroftOS:
 
 	def on_volume_unduck(self, message):
 		self.pulse.unmute_all()
-
-if __name__ == "__main__":
-	EnclosureMycroftOS()
-	wait_for_exit_signal()
